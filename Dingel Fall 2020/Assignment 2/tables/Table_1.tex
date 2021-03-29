@@ -1,0 +1,27 @@
+\begin{table}[htbp]\centering
+\def\sym#1{\ifmmode^{#1}\else\(^{#1}\)\fi}
+\caption{Table 1}
+\begin{tabular}{l*{4}{c}}
+\hline\hline
+                    &\multicolumn{1}{c}{reg}         &\multicolumn{1}{c}{xtreg}         &\multicolumn{1}{c}{areg}         &\multicolumn{1}{c}{reghdfe}         \\
+                    &\multicolumn{1}{c}{(1)}&\multicolumn{1}{c}{(2)}&\multicolumn{1}{c}{(3)}&\multicolumn{1}{c}{(4)}\\
+                    &\multicolumn{1}{c}{log(Flows)}&\multicolumn{1}{c}{log(Flows)}&\multicolumn{1}{c}{log(Flows)}&\multicolumn{1}{c}{log(Flows)}\\
+\hline
+log(Distance)       &      -1.658\sym{***}&      -1.658\sym{***}&      -1.658\sym{***}&      -1.658\sym{***}\\
+                    &   (0.00875)         &   (0.00875)         &   (0.00875)         &   (0.00875)         \\
+[1em]
+Contiguous countries (binary)&       0.974\sym{***}&       0.974\sym{***}&       0.974\sym{***}&       0.974\sym{***}\\
+                    &    (0.0396)         &    (0.0396)         &    (0.0396)         &    (0.0396)         \\
+[1em]
+Common language (binary)&       0.906\sym{***}&       0.906\sym{***}&       0.906\sym{***}&       0.906\sym{***}\\
+                    &    (0.0184)         &    (0.0184)         &    (0.0184)         &    (0.0184)         \\
+\hline
+N                   &      156248         &      156248         &      156248         &      156178         \\
+R^2                 &       0.718         &       0.586         &       0.718         &       0.718         \\
+Adj. R2             &       0.713         &       0.578         &       0.713         &       0.713         \\
+Time (sec)          &     176.192         &       56.71         &       42.55         &       2.295         \\
+\hline\hline
+\multicolumn{5}{l}{\footnotesize Standard errors in parentheses}\\
+\multicolumn{5}{l}{\footnotesize \sym{*} \(p<0.05\), \sym{**} \(p<0.01\), \sym{***} \(p<0.001\)}\\
+\end{tabular}
+\end{table}
