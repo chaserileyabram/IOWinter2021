@@ -17,6 +17,6 @@ using Plots
 x = LinRange(1,10,100)
 y = x.^2
 println("1")
-println(y)
+println(y.^2)
 
 
