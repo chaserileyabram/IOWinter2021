@@ -22,16 +22,20 @@ using Plots
 
 # plot(x,y.^6)
 
-
+cache = Dict()
+cache[1] = 1
+cache[2] = 2
 function fib(n)
-    println("on ", n, "called")
-    if n == 1
-        return 1
-    elseif n == 2
-        return 2
+    # println("fib on ", n, " called")
+    if n in keys(cache)
+        return cache[n]
     end
-
-    return fib(n-1) + fib(n-2)
+    cache[n] = fib(n-1) + fib(n-2)
+    return cache[n]
 end
 
-
+# println(fib(1))
+# println(fib(2))
+# println(fib(3))
+# println(fib(4))
+println(fib(800))
