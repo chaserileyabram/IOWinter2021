@@ -8,6 +8,7 @@ using LinearAlgebra
 using Optim
 
 using Random, Distributions
+
 using Statistics
 using StatsPlots
 
@@ -19,9 +20,11 @@ using DifferentialEquations
 
 ##
 
+Random.seed!(1234)
+
 # Parameters (need to check against a paper)
 rho_0 = 0.05
-rho_1 = 0.05
+rho_1 = 0.04
 gamma = 1.0
 epsilon = 10.0
 theta = 100.0
@@ -37,13 +40,13 @@ phi_pi_sp = 1 + rho_1^2/(4*kappa)
 @with_kw struct Policyparam @deftype Float64
     # MP
     i_star = rho_0 # Should probably make match natural real
-    phi_pi = 1.25 # 1.25
+    phi_pi = 0.0 # 1.25
     phi_b = 0.0
     phi_x = 0.0
     # FP
-    tau_star = 0.0
+    tau_star = 1.0
     psi_pi = 0.0
-    psi_b = 0.5
+    psi_b = 2.0
     psi_x = 0.0
 end
 
@@ -155,19 +158,20 @@ function nkftpl!(du,u,p,t)
     du[3] = (pp.i_star + pp.phi_pi*u[1] - u[1])*u[3] - pp.tau_star - pp.psi_b*u[3]
 end
 
-b_0 = 1.0
+b_0 = 0.0
+b_T = 0.0
 x_0 = 0.0
 
 # Need to play with these
 function bc!(residual, u, p, t)
     # inital debt
-    residual[1] = u[1][3] - b_0
+    # residual[4] = u[1][3] - b_0
 
     # non-explosive output gap
     residual[1] = u[end][2]
 
     # final debt
-    # residual[2] = u[end][3]
+    residual[2] = u[end][3] - b_T
 
     # initial output gap
     # residual[3] = u[1][2] - x_0
@@ -176,8 +180,9 @@ function bc!(residual, u, p, t)
     residual[3] = u[end][1]
 end
 
-T = 10.0
+T = 20
 tspan = (0.0, T)
+tspan_range = LinRange(0,T,T+1)
 
 # u0 = [0.0; 0.0; 1.0]
 # prob = ODEProblem(nkftpl!, u0, tspan)
@@ -191,7 +196,7 @@ tspan = (0.0, T)
 # display(p_b)
 
 bvp = BVProblem(nkftpl!, bc!, [0,0,0], tspan)
-sol_bc = solve(bvp, GeneralMIRK4(), dt=0.1)
+sol_bc = solve(bvp, GeneralMIRK4(), dt=0.5)
 
 p_pi_bc = plot(sol_bc, vars = (1), title = "pi_bc")
 display(p_pi_bc)
@@ -199,10 +204,14 @@ p_x_bc = plot(sol_bc, vars = (2), title = "x_bc")
 display(p_x_bc)
 p_b_bc = plot(sol_bc, vars = (3), title = "b_bc")
 display(p_b_bc)
+println(sol_bc)
 
+p_pi_x_bc = plot(sol_bc, vars = (1,2), 
+title = "pi_x_bc",
+xlabel = "pi", ylabel = "x",
+arrow = true)
+display(p_pi_x_bc)
 
-
-
-
-
+# p_all_bc  = plot(sol_bc, vars = (1,2,3), title = "all_bc")
+# display(p_all_bc)
 
