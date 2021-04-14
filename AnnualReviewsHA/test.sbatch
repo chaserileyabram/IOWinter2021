@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=test
-#SBATCH --output=/Users/chaseabram/UChiGit/AnnualReviewsHA/testout.out
-#SBATCH --error=/Users/chaseabram/UChiGit/AnnualReviewsHA/testerr.err
+#SBATCH --output=/home/abram/AnnualReviewsHA/output/testout.out
+#SBATCH --error=/home/abram/AnnualReviewsHA/output/testerr.err
 #SBATCH --partition=broadwl
 #SBATCH --array=1-10
 #SBATCH --time=24:00:00
@@ -9,7 +9,9 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem-per-cpu=6000
 
-module load julia
 
-julia -nodisplay < /Users/chaseabram/UChiGit/AnnualReviewsHA/stationarydist.jl
+module load julia
+julia testjulia.jl
+
+
 

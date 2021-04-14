@@ -44,7 +44,7 @@ phi_pi_sp = 1 + rho_1^2/(4*kappa)
     phi_b = 0.0
     phi_x = 0.0
     # FP
-    tau_star = 1.0
+    tau_star = 0.0
     psi_pi = 0.0
     psi_b = 2.0
     psi_x = 0.0
@@ -141,7 +141,7 @@ end
 #     println("Spiral time!")
 # end
 
-mu = 0.5
+mu = 0.1
 pp = Policyparam()
 
 function nkftpl!(du,u,p,t)
@@ -165,13 +165,13 @@ x_0 = 0.0
 # Need to play with these
 function bc!(residual, u, p, t)
     # inital debt
-    # residual[4] = u[1][3] - b_0
+    residual[2] = u[1][3] - b_0
 
     # non-explosive output gap
     residual[1] = u[end][2]
 
     # final debt
-    residual[2] = u[end][3] - b_T
+    # residual[2] = u[end][3] - b_T
 
     # initial output gap
     # residual[3] = u[1][2] - x_0

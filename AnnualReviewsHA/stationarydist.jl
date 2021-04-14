@@ -23,25 +23,36 @@ include("EGP.jl")
 # Find stationary distribution over state space
 function find_statdist(m)
     
+    # Initialize
     statdist_iter = 0
     statdist_diff = Inf
 
-    statdist_old = m.statdist
+    # Store old dist
+    statdist_oldvec = m.statdistvec
 
-    # println("init statdist: ", m.statdist)
-
+    # Iterate until converged (or max iterations)
     while statdist_iter < m.statdist_maxiter && statdist_diff > m.statdist_tol
-        m.statdist = m.full_trans'*m.statdist
+        
+        # Update dist using adjoint of policies and transitions
+        m.statdistvec = m.full_trans'*m.statdistvec
 
-        m.statdist /= sum(m.statdist)
+        # Normalize (corrects for flying off to infinities)
+        m.statdistvec /= sum(m.statdistvec)
 
-        statdist_diff = maximum(abs.(m.statdist - statdist_old))
+        # Get difference
+        statdist_diff = maximum(abs.(m.statdistvec - statdist_oldvec))
 
-        statdist_old = m.statdist
+        # Update
+        statdist_oldvec = m.statdistvec
         statdist_iter += 1
+
+        # Progress
         println("statdist_iter: ", statdist_iter)
         println("    diff: ", statdist_diff)
     end
+
+    # Take vec back to grid
+    m.statdist = reshape(m.statdistvec, (m.na, m.nyF, m.nyP, m.nyT, m.nbh))
 end
 
 # Find full transition matrix over states 
@@ -51,19 +62,9 @@ function setup_full_trans(m)
         for yF in 1:m.nyF
             for yP in 1:m.nyP
                 for yT in 1:m.nyT
-                    for z in 1:m.nz
-                        for a2 in 1:m.na
-                            for yF2 in 1:m.nyF
-                                for yP2 in 1:m.nyP
-                                    for yT2 in 1:m.nyT
-                                        for z2 in 1:m.nz
-                                            # Assign this using vec() to reduce size of loop?
-                                            m.full_trans[find_full_index(m,a,yF,yP,yT,z), find_full_index(m,a2,yF2,yP2,yT2,z2)] = m.inter_trans[a,yF,yP,yT,z][a2,yF2,yP2,yT2,z2]
-                                        end
-                                    end
-                                end
-                            end
-                        end
+                    for bh in 1:m.nbh
+                        # Fill in each row
+                        m.full_trans[find_full_index(m,a,yF,yP,yT,bh), :] = vec(m.inter_trans[a,yF,yP,yT,bh])
                     end
                 end
             end
@@ -73,38 +74,36 @@ function setup_full_trans(m)
 end
 
 # Maps state index to column/row in full trans matrix
-function find_full_index(m, a, yF, yP, yT, z)
+function find_full_index(m, a, yF, yP, yT, bh)
     @unpack_ModelDiscrete m
-    return (z-1)*na*nyF*nyP*nyT + (yT-1)*na*nyF*nyP + (yP-1)*na*nyF + (yF-1)*na + a
+    return (bh-1)*na*nyF*nyP*nyT + (yT-1)*na*nyF*nyP + (yP-1)*na*nyF + (yF-1)*na + a
 end
 
 # Set up intermediate transmission matrix
 # This is like the income transition, but accounts for policy also
 function setup_inter_trans(m)
+    # Zero out
     m.inter_trans *= 0.0
-    # println("inter_trans to 0")
+
     # Add threading?
     for a in 1:m.na
         for yF in 1:m.nyF
             for yP in 1:m.nyP
                 for yT in 1:m.nyT
-                    for z in 1:m.nz
-                        # println("out a2 loop")
+                    for bh in 1:m.nbh
 
-                        split_a_tom(m,m.a_tom[a,yF,yP,yT,z])
+                        # Split implied a onto agrid
+                        split_a_tom(m,m.a_tom[a,yF,yP,yT,bh])
 
+                        # Use split to update transition
                         for a2 in 1:m.na
-                            
+                            # Lower bound weight
                             if m.agrid[a2] == m0.lb
-                                # println("in 1")
-                                
-                                m.inter_trans[a,yF,yP,yT,z][a2,:,:,:,:] += m.lbubmix .* m.income_trans[a,yF,yP,yT,z][a,:,:,:,:]
+                                m.inter_trans[a,yF,yP,yT,bh][a2,:,:,:,:] += m.lbubmix .* m.income_trans[a,yF,yP,yT,bh][a,:,:,:,:]
                             end
-
+                            # Upper bound weight
                             if m.agrid[a2] == m0.ub
-                                # println("in 2")
-                                
-                                m.inter_trans[a,yF,yP,yT,z][a2,:,:,:,:] += (1 - m.lbubmix) .* m.income_trans[a,yF,yP,yT,z][a,:,:,:,:]
+                                m.inter_trans[a,yF,yP,yT,bh][a2,:,:,:,:] += (1 - m.lbubmix) .* m.income_trans[a,yF,yP,yT,bh][a,:,:,:,:]
                             end
                         end
                     end
@@ -117,35 +116,38 @@ end
 
 # Returns the asset grid points that will recieve weight of policy ap
 function split_a_tom(m, ap)
+
+    # Different weights are used for on grid, 
+    # above max, and above min, purely for diagnostics
+
+    # Just use if on grid
     if ap in m.agrid
-        # println("a' matched in splitting")
         m.lb = ap
         m.ub = ap
         m.lbubmix = 0.3
-        # return [ap, ap]
+    # Use max if OOB
     elseif ap > maximum(m.agrid)
-        # println("a' larger than max")
         m.lb = maximum(m.agrid)
         m.ub = maximum(m.agrid)
         m.lbubmix = 0.4
+    # Use min if OOB
     elseif ap < minimum(m.agrid)
-        # println("a' smaller than max")
         m.lb = minimum(m.agrid)
         m.ub = minimum(m.agrid)
         m.lbubmix = 0.5
+    # Else split weight
     else
-        # println("a' normal case")
         m.lb = maximum(m.agrid[ap .> m.agrid])
         m.ub = minimum(m.agrid[ap .< m.agrid])
         m.lbubmix = (m.ub - ap)/(m.ub - m.lb)
     end
-
-    # return [m.lb, m.ub]
 end
 
 
 
-m0 = ModelDiscrete(na = 20, nyF = 2, nyP = 2, nyT = 2, nz = 2)
+m0 = ModelDiscrete(na = 25, nyF = 2, nyP = 2, 
+nyT = 2, nbh = 2)
+setup_power_grids(m0)
 setup_income(m0)
 solve_EGP(m0)
 
@@ -154,7 +156,7 @@ setup_full_trans(m0)
 
 find_statdist(m0)
 
-plot(m0.statdist)
+# plot(m0.statdist)
 
 
 # sum1 = sum(m0.income_trans, dims=2)
@@ -170,11 +172,12 @@ plot(m0.statdist)
 # Need to start with income dist then 
 # check each construction
 
-sum(m0.statdist, dims = (1,2))
-newstatdist = reshape(m0.statdist, (m0.na, m0.nyF, m0.nyP, m0.nyT, m0.nz))
+# sum(m0.statdist, dims = (1,2))
+# newstatdist = reshape(m0.statdist, (m0.na, m0.nyF, m0.nyP, m0.nyT, m0.nbh))
 
-newnewstatdist = sum(newstatdist, dims=(2,3,4,5))[:,1,1,1,1]
-p = plot(m0.agrid, newnewstatdist, title = "reasonable dist?")
-savefig(p, string(ENV["SLURM_ARRAY_TASK_ID"])* "sample_dist.png")
+# newnewstatdist = sum(newstatdist, dims=(2,3,4,5))[:,1,1,1,1]
+# p = plot(m0.agrid, newnewstatdist, title = "reasonable dist?")
+# display(p)
+# savefig(p, string(ENV["SLURM_ARRAY_TASK_ID"])* "sample_dist.png")
 
 
