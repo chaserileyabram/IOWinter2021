@@ -145,7 +145,7 @@ end
 
 
 
-m0 = ModelDiscrete(na = 25, nyF = 2, nyP = 2, 
+m0 = ModelDiscrete(na = 500, nyF = 2, nyP = 2, 
 nyT = 2, nbh = 2)
 setup_power_grids(m0)
 setup_income(m0)
